@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مصمم خرائط ومحلل سيد ماين كرافت بيدروك 1.26</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for retro design and Arabic support -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- JSZip for mcworld creation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Three.js for 3D engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for camera manipulation -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            user-select: none;
+            overflow: hidden;
+            height: 100dvh;
+        }
+        .mc-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        /* Minecraft blocky borders and styling */
+        .mc-panel {
+            background: rgba(30, 27, 24, 0.95);
+            border: 4px solid #3c352e;
+            box-shadow: inset -4px -4px 0px #1a1613, inset 4px 4px 0px #5c5146;
+        }
+        .mc-btn {
+            image-rendering: pixelated;
+            border-top: 3px solid #ffffff40;
+            border-left: 3px solid #ffffff40;
+            border-right: 3px solid #00000080;
+            border-bottom: 3px solid #00000080;
+            background-color: #4b5563;
+            transition: all 0.05s ease;
+        }
+        .mc-btn:active {
+            border-top: 3px solid #00000080;
+            border-left: 3px solid #00000080;
+            border-right: 3px solid #ffffff40;
+            border-bottom: 3px solid #ffffff40;
+            transform: translateY(1px);
+        }
+        .mc-btn-green { background-color: #166534; }
+        .mc-btn-blue { background-color: #1e40af; }
+        .mc-btn-red { background-color: #991b1b; }
+        .mc-btn-amber { background-color: #b45309; }
+        .mc-btn-purple { background-color: #6b21a8; }
+        
+        /* Custom scrollbar for inventory */
+        .mc-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .mc-scroll::-webkit-scrollbar-track {
+            background: #1a1613;
+        }
+        .mc-scroll::-webkit-scrollbar-thumb {
+            background: #5c5146;
+            border: 2px solid #3c352e;
+        }
+        
+        /* Minecraft Hotbar style */
+        .hotbar-slot {
+            width: 46px;
+            height: 46px;
+            background: rgba(139, 139, 139, 0.5);
+            border: 4px solid #374151;
+            box-shadow: inset -2px -2px 0px #1f2937, inset 2px 2px 0px #9ca3af;
+            transition: all 0.1s ease;
+        }
+        .hotbar-slot.active {
+            border-color: #facc15;
+            box-shadow: inset -2px -2px 0px #ca8a04, inset 2px 2px 0px #fef08a, 0 0 10px #facc15;
+            transform: scale(1.1);
+        }
+
+        body {
+            height: 100vh !important;
+            height: calc(var(--vh, 1vh) * 100) !important;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen flex flex-col justify-between overflow-hidden">
+
+    <header class="absolute top-0 inset-x-0 p-3 flex justify-between items-center z-30 pointer-events-none">
+        <!-- Title & Specs Info -->
+        <div class="pointer-events-auto mc-panel p-2.5 rounded-lg flex items-center gap-3 max-w-[50%] md:max-w-none">
+            <div class="bg-purple-700 p-1.5 rounded border border-purple-500 hidden sm:block">
+                <i class="fa-solid fa-wand-magic-sparkles text-lg text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-xs md:text-sm font-black text-purple-400">محلل التوليد العكسي والـ Seeds 1.26</h1>
+                <p class="text-[9px] md:text-[10px] text-stone-300 hidden md:block">صمم عالمك، وسيقوم المحلل العكسي بتحويل الهيكل إلى Seed مشفر وقابل للنقل!</p>
+            </div>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="pointer-events-auto flex items-center gap-1.5 md:gap-2">
+            <button onclick="toggleGuideModal()" class="mc-btn bg-amber-700 text-white p-2 rounded text-xs md:text-sm flex items-center gap-1.5 shadow-lg animate-bounce" title="شرح مفصل لطريقة التشغيل">
+                <i class="fa-solid fa-book-open"></i>
+                <span class="hidden sm:inline font-bold text-yellow-300">كيفية تشغيل المود؟</span>
+            </button>
+            <button onclick="toggleAnalyzerModal()" class="mc-btn bg-purple-800 text-white p-2 rounded text-xs md:text-sm flex items-center gap-1.5 shadow" title="المحلل العكسي للأكواد">
+                <i class="fa-solid fa-code"></i>
+                <span class="hidden sm:inline">محلل الـ Seed العكسي</span>
+            </button>
+            <button onclick="toggleSettingsModal()" class="mc-btn bg-stone-700 text-white p-2 rounded text-xs md:text-sm flex items-center gap-1.5 shadow" title="إعدادات الخريطة">
+                <i class="fa-solid fa-gear"></i>
+                <span class="hidden sm:inline">إعدادات العالم</span>
+            </button>
+            <button onclick="generateAndExportWorld()" class="mc-btn mc-btn-green text-white p-2 md:px-3 rounded text-xs md:text-sm flex items-center gap-1.5 font-bold shadow-lg" title="تصدير الخريطة">
+                <i class="fa-solid fa-file-arrow-down"></i>
+                <span>تصدير الماب</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Fullscreen 3D Viewport Target -->
+    <div class="absolute inset-0 w-full h-full z-10" id="canvas-container">
+        <div id="three-canvas-target" class="w-full h-full"></div>
+    </div>
+
+    <div class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20 pointer-events-none">
+        <!-- Coordinate & Status Panel -->
+        <div class="pointer-events-auto mc-panel p-2.5 rounded-lg text-[10px] md:text-xs font-mono text-green-400 space-y-1 select-none max-w-44 shadow-lg">
+            <div class="border-b border-stone-700 pb-1 flex justify-between items-center">
+                <span class="text-stone-400">الإحداثيات الحالية:</span>
+                <i class="fa-solid fa-location-crosshairs text-[10px] text-yellow-400"></i>
+            </div>
+            <div id="hud-coords" class="text-yellow-400 font-bold">X: 0, Y: 1, Z: 0</div>
+            <div class="text-[9px] text-stone-300">الكتلة: <span id="hud-block" class="text-cyan-400">عشب</span></div>
+            <div class="text-[9px] text-stone-300">الكتل المبنية: <span id="hud-total-blocks" class="text-white">0</span></div>
+            <div class="border-t border-stone-800 pt-1 text-[9px] text-yellow-500 font-bold leading-normal">نقرة واحدة: للتحديد واللمس<br>نقرتين سريعة: للبناء والهدم</div>
+        </div>
+
+        <!-- Mode Selectors -->
+        <div class="pointer-events-auto flex flex-col gap-2 pt-2">
+            <button id="tool-place" onclick="setToolMode('place')" class="mc-btn bg-green-700 text-white w-10 h-10 md:w-11 md:h-11 rounded-lg flex flex-col justify-center items-center shadow" title="وضع الكتل">
+                <i class="fa-solid fa-cube text-sm"></i>
+                <span class="text-[8px] font-bold mt-0.5">بناء</span>
+            </button>
+            <button id="tool-break" onclick="setToolMode('break')" class="mc-btn bg-stone-800 text-stone-400 w-10 h-10 md:w-11 md:h-11 rounded-lg flex flex-col justify-center items-center shadow" title="هدم الكتل">
+                <i class="fa-solid fa-hammer text-sm"></i>
+                <span class="text-[8px] font-bold mt-0.5">هدم</span>
+            </button>
+            <button id="tool-spawn" onclick="setToolMode('spawn')" class="mc-btn bg-stone-800 text-amber-500 w-10 h-10 md:w-11 md:h-11 rounded-lg flex flex-col justify-center items-center shadow" title="تحديد نقطة رسبنة مخصصة">
+                <i class="fa-solid fa-location-dot text-sm"></i>
+                <span class="text-[8px] font-bold mt-0.5">السبون</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Left Side Extra Controls -->
+    <div class="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20 pointer-events-auto">
+        <button onclick="openClearConfirmModal()" class="mc-btn bg-stone-800 text-red-500 hover:text-red-400 w-9 h-9 rounded-lg flex justify-center items-center shadow" title="إعادة تهيئة التصميم">
+            <i class="fa-solid fa-trash-can text-sm"></i>
+        </button>
+    </div>
+
+    <!-- Bottom Center HUD: Minecraft Quickbar / Hotbar -->
+    <footer class="absolute bottom-4 inset-x-0 flex justify-center z-20 pointer-events-none">
+        <div class="pointer-events-auto mc-panel p-1.5 rounded-xl flex items-center gap-1.5 md:gap-2 shadow-2xl">
+            <!-- Active Items Hotbar Slots -->
+            <div class="flex items-center gap-1" id="hotbar-slots-container">
+                <!-- Dynamically populated 9 slots -->
+            </div>
+            
+            <div class="h-8 w-[2px] bg-stone-700 mx-1"></div>
+
+            <!-- Inventory Toggle Button (E) -->
+            <button onclick="toggleInventoryModal()" class="mc-btn bg-stone-700 text-white w-11 h-11 rounded flex flex-col justify-center items-center shadow relative" title="حقيبة الكتل الكاملة">
+                <i class="fa-solid fa-toolbox text-sm text-yellow-500"></i>
+                <span class="text-[8px] font-bold mt-0.5">الحقيبة (E)</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Custom Toast Notification System -->
+    <div id="toast-container" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Inventory Popup Modal -->
+    <div id="inventory-modal" class="hidden absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-40 p-4">
+        <div class="mc-panel w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="p-4 border-b-4 border-stone-700 bg-stone-900 flex justify-between items-center">
+                <h3 class="font-black text-yellow-500 text-sm md:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span>حقيبة كتل البناء المتوفرة</span>
+                </h3>
+                <button onclick="toggleInventoryModal()" class="text-stone-400 hover:text-white font-bold text-2xl">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto mc-scroll flex-1 grid grid-cols-3 sm:grid-cols-4 gap-2 bg-stone-950/90" id="full-inventory-grid">
+                <!-- Dynamic block selections -->
+            </div>
+            <div class="p-3 bg-stone-900 border-t-4 border-stone-700 text-center text-[11px] text-stone-400">
+                انقر فوق أي كتلة لوضعها وتنشيطها في الخانة المحددة حالياً بشريطك السريع!
+            </div>
+        </div>
+    </div>
+
+    <!-- Analyzer Modal for Custom Reverse Seeds -->
+    <div id="analyzer-modal" class="hidden absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-40 p-4">
+        <div class="mc-panel w-full max-w-lg rounded-xl overflow-hidden shadow-2xl">
+            <div class="p-4 border-b-4 border-purple-800 bg-stone-900 flex justify-between items-center">
+                <h3 class="font-black text-purple-400 text-sm md:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i>
+                    <span>محلل الـ Seed ومحاكي الهندسة العكسية</span>
+                </h3>
+                <button onclick="toggleAnalyzerModal()" class="text-stone-400 hover:text-white font-bold text-2xl">&times;</button>
+            </div>
+            <div class="p-4 space-y-4 text-xs md:text-sm bg-stone-950/95">
+                <div class="p-3 bg-purple-950/30 rounded-lg border border-purple-800/50 text-stone-300">
+                    <p class="mb-1.5 font-bold text-purple-300 text-xs flex items-center gap-1">
+                        <i class="fa-solid fa-microchip"></i> فكرة خوارزمية التوليد العكسي:
+                    </p>
+                    <p class="text-[11px] leading-relaxed text-stone-300">
+                        تقوم هذه الأداة بتحليل مصفوفة تصميمك ثلاثي الأبعاد وضغطها رياضياً مع الإحداثيات والكتل المخصصة، وتنتج كوداً فريداً (Seed) لتوليد البناء. يمكنك نسخ ومشاركته لإعادة استدعاء تصميمك فوراً أو نقله عبر الأجهزة!
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-purple-400 mb-1 text-[11px] font-bold">الـ Seed العكسي المولد حالياً (انقر للنسخ):</label>
+                    <div class="flex gap-2">
+                        <textarea readonly id="reverse-generated-seed" class="w-full h-16 bg-stone-900 text-stone-300 border-2 border-purple-900 rounded-lg p-2 font-mono text-[10px] resize-none focus:outline-none focus:border-purple-600 select-all"></textarea>
+                        <button onclick="copyGeneratedCustomSeed()" class="mc-btn bg-purple-800 text-white px-3 rounded-lg text-xs font-bold flex flex-col justify-center items-center gap-1">
+                            <i class="fa-regular fa-copy text-sm"></i>
+                            <span>نسخ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t border-stone-800 pt-3">
+                    <label class="block text-stone-400 mb-1 text-[11px] font-bold">إدخال كود Seed مسبق لإعادة البناء في المحاكي:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-custom-seed" placeholder="ضع كود MC_SEED_ هنا..." class="flex-1 bg-stone-900 text-white border-2 border-stone-700 rounded-lg px-3 py-1.5 focus:border-purple-500 outline-none font-mono text-xs">
+                        <button onclick="applyInputSeed()" class="mc-btn bg-green-800 text-white px-4 py-1.5 rounded-lg text-xs font-bold">تطبيق التوليد</button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-3 bg-stone-900 border-t-4 border-stone-700 flex justify-end">
+                <button onclick="toggleAnalyzerModal()" class="mc-btn bg-stone-700 text-white px-5 py-1.5 rounded-lg text-xs font-bold">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-40 p-4">
+        <div class="mc-panel w-full max-w-md rounded-xl overflow-hidden shadow-2xl">
+            <div class="p-4 border-b-4 border-stone-700 bg-stone-900 flex justify-between items-center">
+                <h3 class="font-black text-amber-500 text-sm md:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>إعدادات عالم ماين كرافت</span>
+                </h3>
+                <button onclick="toggleSettingsModal()" class="text-stone-400 hover:text-white font-bold text-2xl">&times;</button>
+            </div>
+            <div class="p-4 space-y-3.5 text-xs md:text-sm bg-stone-950/90">
+                <div>
+                    <label class="block text-stone-400 mb-1 text-[11px] font-bold">اسم خريطة العالم (World Name)</label>
+                    <input type="text" id="world-name-input" value="عالمي المبتكر 1.26" class="w-full bg-stone-900 text-white border-2 border-stone-700 rounded-lg px-3 py-1.5 focus:border-green-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-stone-400 mb-1 text-[11px] font-bold">بذرة العالم الطبيعية (Minecraft Seed)</label>
+                        <input type="number" id="world-seed-input" value="1260999123" class="w-full bg-stone-900 text-white border-2 border-stone-700 rounded-lg px-3 py-1.5 focus:border-green-500 outline-none font-mono">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="randomizeSeed()" class="mc-btn bg-stone-700 text-white w-full py-2 px-3 rounded-lg text-xs font-bold">
+                            <i class="fa-solid fa-dice"></i> عشوائي
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-stone-400 mb-1 text-[11px] font-bold">نمط اللعب المبدئي (Game Mode)</label>
+                        <div class="grid grid-cols-2 gap-1 bg-stone-900 p-1 rounded-lg border border-stone-800">
+                            <button id="gamemode-creative" onclick="setGameMode(1)" class="py-1 px-2 bg-green-800 text-white rounded font-bold text-[10px]">إبداعي</button>
+                            <button id="gamemode-survival" onclick="setGameMode(0)" class="py-1 px-2 text-stone-400 rounded font-bold text-[10px]">بقاء</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-stone-400 mb-1 text-[11px] font-bold">نوع توليد التضاريس (Generator)</label>
+                        <div class="grid grid-cols-2 gap-1 bg-stone-900 p-1 rounded-lg border border-stone-800">
+                            <button id="gen-flat" onclick="setWorldGenerator(1)" class="py-1 px-2 bg-green-800 text-white rounded font-bold text-[10px]" title="أرض مستوية لترى تصميمك فوراً">مسطح Flat</button>
+                            <button id="gen-infinite" onclick="setWorldGenerator(2)" class="py-1 px-2 text-stone-400 rounded font-bold text-[10px]" title="عالم طبيعي عادي">لانهائي</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 bg-stone-900 rounded-lg border border-stone-800 space-y-1.5">
+                    <span class="text-[11px] font-bold text-amber-500 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info"></i> إحداثيات رسبنة اللاعب الافتراضية:
+                    </span>
+                    <div class="grid grid-cols-3 gap-1 font-mono text-center text-xs">
+                        <div class="bg-stone-950 p-1 rounded">X: <span id="settings-spawn-x" class="text-white">0</span></div>
+                        <div class="bg-stone-950 p-1 rounded">Y: <span id="settings-spawn-y" class="text-white">5</span></div>
+                        <div class="bg-stone-950 p-1 rounded">Z: <span id="settings-spawn-z" class="text-white">0</span></div>
+                    </div>
+                    <p class="text-[9px] text-stone-400">سيتم بناء تصميمك تلقائياً حول اللاعب في هذه الإحداثيات لضمان تحميل الكتل فوراً دون أخطاء!</p>
+                </div>
+            </div>
+            <div class="p-3 bg-stone-900 border-t-4 border-stone-700 flex justify-end">
+                <button onclick="toggleSettingsModal()" class="mc-btn mc-btn-green text-white px-5 py-1.5 rounded-lg text-xs font-bold">حفظ الخيارات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Guide Modal -->
+    <div id="detailed-guide-modal" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="mc-panel w-full max-w-2xl rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b-4 border-amber-600 bg-stone-900 flex justify-between items-center">
+                <h3 class="font-black text-amber-500 text-sm md:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-yellow-500"></i>
+                    <span>دليل الشرح المفصل لتشغيل وتوليد المباني في اللعبة 1.26.0</span>
+                </h3>
+                <button onclick="toggleGuideModal()" class="text-stone-400 hover:text-white font-bold text-2xl">&times;</button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto mc-scroll flex-1 bg-stone-950/95 space-y-6 text-xs md:text-sm text-stone-300 leading-relaxed text-right">
+                
+                <!-- Step 1 -->
+                <div class="border-b border-stone-800 pb-4">
+                    <h4 class="font-bold text-yellow-400 text-sm mb-2 flex items-center gap-2">
+                        <span class="bg-yellow-600/30 text-yellow-400 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                        <span>تثبيت حزمة السلوك (MCPACK) في هاتفكم:</span>
+                    </h4>
+                    <p class="mr-8">
+                        عندما تضغط على زر <strong class="text-white">"تصدير الماب"</strong> ثم تختار <strong class="text-purple-400">"تحميل كحزمة سلوك (MCPACK)"</strong>، قم بفتح الملف الذي تم تحميله مباشرة باستخدام لعبة ماين كرافت في الهاتف، وسيقوم النظام فوراً بتثبيت الحزمة وإخبارك بنجاح التثبيت (<span class="text-green-400">Import Successful</span>).
+                    </p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="border-b border-stone-800 pb-4">
+                    <h4 class="font-bold text-yellow-400 text-sm mb-2 flex items-center gap-2">
+                        <span class="bg-yellow-600/30 text-yellow-400 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                        <span>إعداد عالم جديد في ماين كرافت:</span>
+                    </h4>
+                    <ul class="list-disc list-inside mr-8 space-y-1 text-stone-400">
+                        <li>أنشئ عالماً جديداً كلياً في اللعبة.</li>
+                        <li>من خيارات توليد العالم، اختر نوع <strong class="text-white">مسطح (Flat World)</strong> لتجنب تداخل المباني مع التضاريس الطبيعية.</li>
+                        <li>قم بتفعيل خيار <strong class="text-white">تفعيل الغش (Enable Cheats)</strong> لكي تتمكن الأوامر من بناء المجسم.</li>
+                        <li>اذهب لتبويب <strong class="text-yellow-500">Behavior Packs</strong> وقم بتفعيل حزمة السلوك الخاصة بالموقع التي قمت بتثبيتها للتو.</li>
+                    </ul>
+                </div>
+
+                <!-- Step 3 -->
+                <div>
+                    <h4 class="font-bold text-yellow-400 text-sm mb-3 flex items-center gap-2">
+                        <span class="bg-yellow-600/30 text-yellow-400 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                        <span>طريقة استدعاء وتشييد تصميمك داخل اللعبة (مهم جداً):</span>
+                    </h4>
+                    <p class="mr-8 mb-3">لقد قمنا ببرمجة <strong class="text-green-400">3 طرق آمنة وسريعة</strong> لتوليد المبنى الذي صممته داخل اللعبة:</p>
+                    
+                    <div class="mr-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Method A -->
+                        <div class="bg-stone-900 p-3 rounded-lg border border-stone-800">
+                            <h5 class="font-bold text-purple-400 mb-1"><i class="fa-solid fa-code"></i> الطريقة الأولى: أمر مباشر</h5>
+                            <p class="text-[11px] text-stone-400">
+                                افتح لوحة الدردشة في اللعبة واكتب الأمر التالي لتوليد المبنى فوراً تحت قدميك:
+                            </p>
+                            <code class="block text-center bg-black/50 text-yellow-400 py-1 rounded mt-1.5 font-mono text-[10px]">/function build</code>
+                        </div>
+
+                        <!-- Method B -->
+                        <div class="bg-stone-900 p-3 rounded-lg border border-stone-800">
+                            <h5 class="font-bold text-amber-400 mb-1"><i class="fa-solid fa-circle-user"></i> الطريقة الثانية: بيضة رسبنة</h5>
+                            <p class="text-[11px] text-stone-400">
+                                ضع <strong class="text-white">حامل دروع (Armor Stand)</strong> في أي مكان في عالمك، واستخدم بطاقة اسم (Name Tag) لتسميته بالاسم <strong class="text-yellow-400 font-bold">"build"</strong>. سيتلاشى الحامل فوراً ويظهر مكانه مجسمك الفني الخرافي في نفس النقطة!
+                            </p>
+                        </div>
+
+                        <!-- Method C -->
+                        <div class="bg-stone-900 p-3 rounded-lg border border-stone-800">
+                            <h5 class="font-bold text-green-400 mb-1"><i class="fa-solid fa-wand-magic-sparkles"></i> الطريقة الثالثة: التلقائية</h5>
+                            <p class="text-[11px] text-stone-400">
+                                بمجرد رسبنتك ودخولك للعالم لأول مرة، سيتعرف المود على موقعك وسيبدأ في تشييد الكتل والمباني تلقائياً حول الإحداثيات التي حددتها في الموقع!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="p-3 bg-stone-900 border-t-4 border-stone-700 flex justify-end">
+                <button onclick="toggleGuideModal()" class="mc-btn mc-btn-blue text-white px-6 py-2 rounded-lg text-xs font-bold">فهمت الخطوات، لنبدأ البناء!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Result Modal -->
+    <div id="export-modal" class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-40 p-4">
+        <div class="mc-panel w-full max-w-md rounded-xl overflow-hidden shadow-2xl text-center">
+            <div class="bg-green-950 p-5 border-b-4 border-green-800">
+                <div class="w-12 h-12 bg-green-500 rounded-full mx-auto flex items-center justify-center mb-2 shadow-lg">
+                    <i class="fa-solid fa-check text-white text-2xl"></i>
+                </div>
+                <h3 class="text-md md:text-lg font-black text-green-400">تم تجهيز ملفات التصدير بنجاح!</h3>
+                <p class="text-stone-300 text-[10px] mt-0.5">متوافق مع ماين كرافت بيدروك 1.26.0</p>
+            </div>
+            <div class="p-4 space-y-3 bg-stone-950 text-right">
+                
+                <div class="p-3 bg-stone-900 rounded-lg border border-stone-800 space-y-1 text-center">
+                    <span class="text-[10px] text-stone-400 block font-bold">كيف سأرى تصميمي في ماين كرافت؟</span>
+                    <button onclick="openGuideFromExport()" class="text-yellow-400 hover:text-yellow-300 text-xs font-bold underline">
+                        <i class="fa-solid fa-book-open"></i> اضغط هنا لعرض دليل الشرح المفصل للتوليد والتشغيل
+                    </button>
+                </div>
+
+                <div class="p-2.5 bg-stone-900 rounded-lg border border-stone-800 space-y-1.5 text-center">
+                    <span class="text-[10px] text-stone-400 block font-bold">الـ Seed الطبيعي لتضاريس العالم المولد:</span>
+                    <div class="flex items-center justify-between bg-stone-950 p-1.5 rounded border border-stone-800 font-mono">
+                        <span id="export-seed-text" class="text-green-400 font-bold text-sm tracking-wide">1260999123</span>
+                        <button onclick="copyGeneratedSeed()" class="bg-stone-800 text-stone-300 px-2 py-0.5 rounded text-[10px] flex items-center gap-1 active:scale-95">
+                            <i class="fa-regular fa-copy"></i><span>نسخ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-1">
+                    <!-- Option 1: MCPACK (Recommended/Highly Stable) -->
+                    <button id="download-mcpack-btn" class="mc-btn mc-btn-purple w-full py-2.5 rounded-lg text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow">
+                        <i class="fa-solid fa-cube animate-bounce"></i>
+                        <span>تحميل كحزمة سلوك (.MCPACK) - الخيار الموصى به!</span>
+                    </button>
+                    <p class="text-[9px] text-stone-400 text-center leading-normal mb-2">قم بتركيب الحزمة وتسمية حامل الدروع <span class="text-yellow-400">build</span> لبناء تصميمك فوراً!</p>
+                    
+                    <!-- Option 2: MCWORLD (Full World Download) -->
+                    <button id="download-mcworld-btn" class="mc-btn mc-btn-green w-full py-2 rounded-lg text-white font-black text-xs flex items-center justify-center gap-2 shadow opacity-90 hover:opacity-100">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>تحميل كخريطة عالم متكاملة (.MCWORLD)</span>
+                    </button>
+                </div>
+
+                <div class="flex justify-center pt-2">
+                    <button onclick="toggleExportModal()" class="text-stone-500 hover:text-stone-400 text-[10px] block">متابعة تعديل المجسم</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Map Confirmation Modal -->
+    <div id="clear-confirm-modal" class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-40 p-4">
+        <div class="mc-panel w-full max-w-xs rounded-xl overflow-hidden shadow-2xl text-center">
+            <div class="bg-red-950/80 p-4 border-b-4 border-red-900 flex flex-col items-center">
+                <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center mb-1.5 shadow">
+                    <i class="fa-solid fa-triangle-exclamation text-white text-base"></i>
+                </div>
+                <h3 class="text-xs md:text-sm font-black text-red-400">تأكيد مسح التصميم بالكامل؟</h3>
+            </div>
+            <div class="p-4 space-y-3 bg-stone-950 text-xs text-stone-300">
+                <p>سيؤدي هذا لحذف كافة الكتل التي قمت ببنائها حالياً والبدء من جديد. هل ترغب بالاستمرار؟</p>
+                <div class="flex gap-2 justify-center pt-1">
+                    <button onclick="confirmClearMap()" class="mc-btn bg-red-800 text-white px-4 py-1.5 rounded-lg text-[11px] font-bold">نعم، امسح</button>
+                    <button onclick="toggleClearConfirmModal()" class="mc-btn bg-stone-700 text-white px-4 py-1.5 rounded-lg text-[11px] font-bold">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Custom Audio Synthesizer (Using Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(frequency, type, duration, volume = 0.15) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log("Audio playback error:", e);
+            }
+        }
+
+        function playPopSound() { playSound(550, 'sine', 0.08, 0.1); }
+        function playBreakSound() { playSound(140, 'triangle', 0.15, 0.25); }
+        function playCompleteSound() {
+            playSound(380, 'sine', 0.08, 0.1);
+            setTimeout(() => playSound(500, 'sine', 0.08, 0.1), 80);
+            setTimeout(() => playSound(750, 'sine', 0.15, 0.1), 160);
+        }
+
+        // Custom Notification / Toast helper (No intrusive alerts)
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `mc-panel px-3 py-2 rounded-lg text-[11px] font-bold flex items-center gap-2 text-white shadow-xl transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+            
+            let color = 'border-green-600 bg-stone-900';
+            let icon = '<i class="fa-solid fa-circle-check text-green-500"></i>';
+            if (type === 'error') {
+                color = 'border-red-600 bg-stone-900';
+                icon = '<i class="fa-solid fa-circle-exclamation text-red-500"></i>';
+            } else if (type === 'info') {
+                color = 'border-blue-600 bg-stone-900';
+                icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+            }
+
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+
+            // Animate In
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            playPopSound();
+
+            // Auto Remove after 3.5s
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Complete block inventory palette
+        const BLOCKS = {
+            'grass': { name: 'عشب', color: '#4ade80', noise: '#166534', id: 'grass_block' },
+            'dirt': { name: 'تراب', color: '#78350f', noise: '#451a03', id: 'dirt' },
+            'stone': { name: 'حجر', color: '#6b7280', noise: '#374151', id: 'stone' },
+            'wood': { name: 'خشب', color: '#a16207', noise: '#78350f', id: 'oak_log' },
+            'leaves': { name: 'أوراق', color: '#15803d', noise: '#14532d', id: 'oak_leaves' },
+            'water': { name: 'ماء', color: '#1d4ed8', noise: '#1e3a8a', id: 'water' },
+            'diamond': { name: 'دايموند', color: '#06b6d4', noise: '#164e63', id: 'diamond_ore' },
+            'glass': { name: 'زجاج', color: '#e2e8f0', noise: '#94a3b8', id: 'glass' },
+            'lava': { name: 'لافا', color: '#ea580c', noise: '#7c2d12', id: 'lava' },
+            'sand': { name: 'رمل', color: '#fef08a', noise: '#ca8a04', id: 'sand' },
+            'gold': { name: 'ذهب', color: '#fbbf24', noise: '#b45309', id: 'gold_ore' },
+            'brick': { name: 'طوب', color: '#b91c1c', noise: '#7f1d1d', id: 'bricks' }
+        };
+
+        // Hotbar Configuration (9 Slots mapping to keys)
+        let hotbarSlots = ['grass', 'dirt', 'stone', 'wood', 'leaves', 'water', 'diamond', 'glass', 'lava'];
+        let activeHotbarIndex = 0; // 0 to 8
+        let selectedBlock = hotbarSlots[activeHotbarIndex];
+
+        let currentToolMode = 'place'; // 'place', 'break', 'spawn'
+        let worldName = "عالمي المبتكر 1.26";
+        let worldSeed = "1260999123";
+        let gameMode = 1; // 1 = Creative, 0 = Survival
+        let worldGenerator = 1; // 1 = Flat (default for custom models), 2 = Infinite
+
+        // Default Spawn coordinate (Relative 0,0,0 coordinate of the 3D builder)
+        let spawnX = 0;
+        let spawnY = 5;
+        let spawnZ = 0;
+
+        // Voxel Grid data mapping key: "x,y,z" => blockType
+        let voxelGrid = {};
+        
+        // Initial build - nice little platform to start on
+        for (let x = -3; x <= 3; x++) {
+            for (let z = -3; z <= 3; z++) {
+                voxelGrid[`${x},0,${z}`] = 'grass';
+            }
+        }
+
+        // Textures Generator (16x16 pixels with noise)
+        const textures = {};
+        function generatePixelTexture(baseColor, noiseColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 16;
+            canvas.height = 16;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, 16, 16);
+            for (let x = 0; x < 16; x++) {
+                for (let y = 0; y < 16; y++) {
+                    if (Math.random() > 0.6) {
+                        ctx.fillStyle = noiseColor;
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Initialize all textures with pixelated filter
+        Object.keys(BLOCKS).forEach(key => {
+            textures[key] = generatePixelTexture(BLOCKS[key].color, BLOCKS[key].noise);
+            textures[key].magFilter = THREE.NearestFilter;
+            textures[key].minFilter = THREE.NearestFilter;
+        });
+
+        function generateReverseDesignSeed() {
+            try {
+                const blockList = [];
+                const blockKeys = Object.keys(BLOCKS);
+
+                Object.keys(voxelGrid).forEach(key => {
+                    const [x, y, z] = key.split(',').map(Number);
+                    const blockType = voxelGrid[key];
+                    const typeIndex = blockKeys.indexOf(blockType);
+                    blockList.push([x, y, z, typeIndex]);
+                });
+
+                const dataToEncode = {
+                    version: "1.26",
+                    name: worldName,
+                    seed: worldSeed,
+                    gen: worldGenerator,
+                    mode: gameMode,
+                    spawn: [spawnX, spawnY, spawnZ],
+                    blocks: blockList
+                };
+
+                const jsonStr = JSON.stringify(dataToEncode);
+                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+                const customSeed = "MC_SEED_" + base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+                return customSeed;
+            } catch (e) {
+                console.error("Error generating custom seed:", e);
+                return "MC_SEED_ERROR";
+            }
+        }
+
+        function rebuildWorldFromCustomSeed(seedStr) {
+            if (!seedStr || !seedStr.startsWith("MC_SEED_")) {
+                showToast("تنسيق الـ Seed غير صالح!", "error");
+                return false;
+            }
+
+            try {
+                let cleanBase64 = seedStr.substring(8).replace(/-/g, '+').replace(/_/g, '/');
+                while (cleanBase64.length % 4) {
+                    cleanBase64 += '=';
+                }
+
+                const decodedJson = decodeURIComponent(escape(atob(cleanBase64)));
+                const data = JSON.parse(decodedJson);
+
+                worldName = data.name || "عالم مسترجع";
+                worldSeed = data.seed || "1260999123";
+                worldGenerator = data.gen || 1;
+                gameMode = data.mode !== undefined ? data.mode : 1;
+                
+                if (data.spawn) {
+                    spawnX = data.spawn[0];
+                    spawnY = data.spawn[1];
+                    spawnZ = data.spawn[2];
+                }
+
+                voxelGrid = {};
+                const blockKeys = Object.keys(BLOCKS);
+
+                data.blocks.forEach(item => {
+                    const [x, y, z, typeIndex] = item;
+                    const blockType = blockKeys[typeIndex] || 'grass';
+                    voxelGrid[`${x},${y},${z}`] = blockType;
+                });
+
+                document.getElementById('world-name-input').value = worldName;
+                document.getElementById('world-seed-input').value = worldSeed;
+                document.getElementById('settings-spawn-x').innerText = spawnX;
+                document.getElementById('settings-spawn-y').innerText = spawnY;
+                document.getElementById('settings-spawn-z').innerText = spawnZ;
+
+                setWorldGenerator(worldGenerator);
+                setGameMode(gameMode);
+                renderGrid();
+                updateHUD();
+                updateReverseSeedField();
+
+                showToast("تم توليد الماب بنجاح عبر الهندسة العكسية للـ Seed!", "success");
+                playCompleteSound();
+                return true;
+            } catch (e) {
+                console.error("Failed to decode custom seed:", e);
+                showToast("فشل فك تشفير هذا الـ Seed!", "error");
+                return false;
+            }
+        }
+
+        function updateReverseSeedField() {
+            const seed = generateReverseDesignSeed();
+            document.getElementById('reverse-generated-seed').value = seed;
+        }
+
+        function copyGeneratedCustomSeed() {
+            const seedArea = document.getElementById('reverse-generated-seed');
+            seedArea.select();
+            document.execCommand('copy');
+            showToast("تم نسخ الـ Seed المطور بالكامل للذاكرة!", "success");
+        }
+
+        function applyInputSeed() {
+            const seedVal = document.getElementById('input-custom-seed').value.trim();
+            if (rebuildWorldFromCustomSeed(seedVal)) {
+                toggleAnalyzerModal();
+            }
+        }
+
+        let scene, camera, renderer, controls;
+        let blockObjects = {}; // Mesh references
+        let pointerBox; // Wireframe selector
+        let cursorPosition = { x: 0, y: 1, z: 0 };
+
+        function init3DEngine() {
+            const container = document.getElementById('three-canvas-target');
+            scene = new THREE.Scene();
+            
+            scene.background = new THREE.Color('#12131a');
+            scene.fog = new THREE.FogExp2('#12131a', 0.045);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(7, 7, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02; 
+            controls.minDistance = 3;
+            controls.maxDistance = 50;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+            sunLight.position.set(15, 30, 15);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            scene.add(sunLight);
+
+            const gridHelper = new THREE.GridHelper(40, 40, '#a855f7', '#3c352e');
+            gridHelper.position.y = -0.5;
+            scene.add(gridHelper);
+
+            const geometry = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+            const edgeGeometry = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xa855f7, linewidth: 3 });
+            pointerBox = new THREE.LineSegments(edgeGeometry, lineMaterial);
+            pointerBox.position.set(0, 1, 0);
+            scene.add(pointerBox);
+
+            renderGrid();
+            updateHUD();
+
+            // Resize Handler for Adaptive Viewports
+            const resizeObserver = new ResizeObserver(() => {
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                if (width > 0 && height > 0) {
+                    camera.aspect = width / height;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(width, height);
+                }
+            });
+            resizeObserver.observe(container);
+
+            window.addEventListener('pointerdown', onScreenPointerDown, false);
+
+            animate();
+        }
+
+        function renderGrid() {
+            // Remove existing meshes
+            Object.keys(blockObjects).forEach(key => {
+                scene.remove(blockObjects[key]);
+            });
+            blockObjects = {};
+
+            // Render voxel layout
+            Object.keys(voxelGrid).forEach(key => {
+                const [x, y, z] = key.split(',').map(Number);
+                const blockType = voxelGrid[key];
+                
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshLambertMaterial({ 
+                    map: textures[blockType] || textures['grass']
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(x, y, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                scene.add(mesh);
+                blockObjects[key] = mesh;
+            });
+
+            updateReverseSeedField();
+        }
+
+        // Raycasting and Double Click/Tap handler
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        let lastTapTime = 0;
+        const DOUBLE_TAP_DELAY = 280; // milliseconds
+
+        function onScreenPointerDown(event) {
+            // Check if user clicked on UI elements
+            if (event.target.tagName === 'BUTTON' || event.target.closest('.mc-panel') || event.target.closest('header') || event.target.closest('footer')) {
+                return;
+            }
+
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+
+            const container = document.getElementById('three-canvas-target');
+            const rect = renderer.domElement.getBoundingClientRect();
+            
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(Object.values(blockObjects));
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                const position = intersect.object.position;
+                
+                if (currentToolMode === 'place') {
+                    const normal = intersect.face.normal;
+                    cursorPosition = {
+                        x: Math.round(position.x + normal.x),
+                        y: Math.max(0, Math.round(position.y + normal.y)),
+                        z: Math.round(position.z + normal.z)
+                    };
+                } else {
+                    cursorPosition = {
+                        x: Math.round(position.x),
+                        y: Math.round(position.y),
+                        z: Math.round(position.z)
+                    };
+                }
+            } else {
+                // Plane intersection
+                const planeIntersect = raycaster.intersectObject(new THREE.Mesh(
+                    new THREE.PlaneGeometry(100, 100),
+                    new THREE.MeshBasicMaterial({ visible: false })
+                ).rotateX(-Math.PI / 2));
+
+                if (planeIntersect.length > 0) {
+                    const pt = planeIntersect[0].point;
+                    cursorPosition = {
+                        x: Math.round(pt.x),
+                        y: 0,
+                        z: Math.round(pt.z)
+                    };
+                }
+            }
+            
+            pointerBox.position.set(cursorPosition.x, cursorPosition.y, cursorPosition.z);
+            updateHUD();
+
+            // Double tap condition
+            if (tapLength < DOUBLE_TAP_DELAY && tapLength > 0) {
+                triggerActionOnCursor();
+                lastTapTime = 0;
+            } else {
+                lastTapTime = currentTime;
+                playSound(320, 'sine', 0.03, 0.05); // Minimal selection indicator sound
+            }
+        }
+
+        function triggerActionOnCursor() {
+            const key = `${cursorPosition.x},${cursorPosition.y},${cursorPosition.z}`;
+            
+            if (currentToolMode === 'place') {
+                voxelGrid[key] = selectedBlock;
+                playPopSound();
+                renderGrid();
+                
+                // Stack up slightly for easier continuous placement
+                cursorPosition.y += 1;
+                pointerBox.position.y = cursorPosition.y;
+            } 
+            else if (currentToolMode === 'break') {
+                if (voxelGrid[key]) {
+                    delete voxelGrid[key];
+                    playBreakSound();
+                    renderGrid();
+                } else {
+                    showToast("لا توجد كتلة هنا لكسرها!", "info");
+                }
+            } 
+            else if (currentToolMode === 'spawn') {
+                spawnX = cursorPosition.x;
+                spawnY = cursorPosition.y;
+                spawnZ = cursorPosition.z;
+                
+                document.getElementById('settings-spawn-x').innerText = spawnX;
+                document.getElementById('settings-spawn-y').innerText = spawnY;
+                document.getElementById('settings-spawn-z').innerText = spawnZ;
+                
+                playCompleteSound();
+                showToast(`تم تعيين نقطة السبون (X: ${spawnX}, Y: ${spawnY}, Z: ${spawnZ})!`, "success");
+            }
+
+            updateHUD();
+        }
+
+        function setToolMode(mode) {
+            currentToolMode = mode;
+            document.getElementById('tool-place').className = `mc-btn w-10 h-10 md:w-11 md:h-11 rounded-lg flex flex-col justify-center items-center shadow ${mode === 'place' ? 'bg-green-600 border-2 border-green-400 text-white' : 'bg-stone-800 text-stone-400'}`;
+            document.getElementById('tool-break').className = `mc-btn w-10 h-10 md:w-11 md:h-11 rounded-lg flex flex-col justify-center items-center shadow ${mode === 'break' ? 'bg-red-600 border-2 border-red-400 text-white' : 'bg-stone-800 text-stone-400'}`;
+            document.getElementById('tool-spawn').className = `mc-btn w-10 h-10 md:w-11 md:h-11 rounded-lg flex flex-col justify-center items-center shadow ${mode === 'spawn' ? 'bg-amber-600 border-2 border-amber-400 text-white' : 'bg-stone-800 text-stone-400'}`;
+            
+            if (mode === 'place') pointerBox.material.color.setHex(0x22c55e);
+            if (mode === 'break') pointerBox.material.color.setHex(0xef4444);
+            if (mode === 'spawn') pointerBox.material.color.setHex(0xf59e0b);
+            
+            showToast(`تم التغيير إلى وضع ${mode === 'place' ? 'البناء' : mode === 'break' ? 'الهدم' : 'تحديد رسبنة اللاعب'}`, "info");
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-coords').innerText = `X: ${cursorPosition.x}, Y: ${cursorPosition.y}, Z: ${cursorPosition.z}`;
+            document.getElementById('hud-block').innerText = BLOCKS[selectedBlock].name;
+            document.getElementById('hud-total-blocks').innerText = Object.keys(voxelGrid).length;
+        }
+
+        function selectHotbarIndex(index) {
+            activeHotbarIndex = index;
+            selectedBlock = hotbarSlots[index];
+            
+            document.querySelectorAll('.hotbar-slot').forEach((el, idx) => {
+                if (idx === index) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+            
+            updateHUD();
+            playPopSound();
+        }
+
+        function renderHotbarSlots() {
+            const container = document.getElementById('hotbar-slots-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const blockKey = hotbarSlots[i];
+                const block = BLOCKS[blockKey];
+                const activeClass = i === activeHotbarIndex ? 'active' : '';
+                
+                container.innerHTML += `
+                    <button onclick="selectHotbarIndex(${i})" class="hotbar-slot ${activeClass} flex items-center justify-center relative active:scale-95 duration-75">
+                        <div class="w-7 h-7 rounded" style="background-color: ${block.color}; border: 1px solid rgba(0,0,0,0.4);"></div>
+                        <span class="absolute bottom-0 right-0.5 text-[8px] font-bold text-yellow-400">${i + 1}</span>
+                    </button>
+                `;
+            }
+        }
+
+        function assignBlockToActiveSlot(blockKey) {
+            hotbarSlots[activeHotbarIndex] = blockKey;
+            selectedBlock = blockKey;
+            renderHotbarSlots();
+            toggleInventoryModal();
+            updateHUD();
+            showToast(`تم تثبيت ${BLOCKS[blockKey].name} في الخانة ${activeHotbarIndex + 1}!`, "success");
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Bedrock Level.dat generator using Little Endian NBT format
+        class BedrockNBTWriter {
+            constructor() {
+                this.buffer = new ArrayBuffer(8192);
+                this.view = new DataView(this.buffer);
+                this.offset = 0;
+            }
+            ensureCapacity(bytes) {
+                if (this.offset + bytes > this.buffer.byteLength) {
+                    const newBuf = new ArrayBuffer(this.buffer.byteLength * 2);
+                    new Uint8Array(newBuf).set(new Uint8Array(this.buffer));
+                    this.buffer = newBuf;
+                    this.view = new DataView(this.buffer);
+                }
+            }
+            writeByte(val) {
+                this.ensureCapacity(1);
+                this.view.setUint8(this.offset, val);
+                this.offset += 1;
+            }
+            writeShort(val) {
+                this.ensureCapacity(2);
+                this.view.setInt16(this.offset, val, true);
+                this.offset += 2;
+            }
+            writeInt(val) {
+                this.ensureCapacity(4);
+                this.view.setInt32(this.offset, val, true);
+                this.offset += 4;
+            }
+            writeLong(val) {
+                this.ensureCapacity(8);
+                const low = val & 0xffffffff;
+                const high = Math.floor(val / 0x100000000);
+                this.view.setInt32(this.offset, low, true);
+                this.view.setInt32(this.offset + 4, high, true);
+                this.offset += 8;
+            }
+            writeString(val) {
+                const enc = new TextEncoder();
+                const bytes = enc.encode(val);
+                this.writeShort(bytes.length);
+                this.ensureCapacity(bytes.length);
+                new Uint8Array(this.buffer).set(bytes, this.offset);
+                this.offset += bytes.length;
+            }
+            writeTagHeader(type, name) {
+                this.writeByte(type);
+                if (type !== 0) {
+                    this.writeString(name);
+                }
+            }
+            writeCompound(name) { this.writeTagHeader(10, name); }
+            writeEnd() { this.writeByte(0); }
+            
+            writeStringTag(name, val) {
+                this.writeTagHeader(8, name);
+                this.writeString(val);
+            }
+            writeIntTag(name, val) {
+                this.writeTagHeader(3, name);
+                this.writeInt(val);
+            }
+            writeByteTag(name, val) {
+                this.writeTagHeader(1, name);
+                this.writeByte(val);
+            }
+            writeLongTag(name, val) {
+                this.writeTagHeader(4, name);
+                this.writeLong(val);
+            }
+            getBinaryResult() {
+                return new Uint8Array(this.buffer, 0, this.offset);
+            }
+        }
+
+        function generateAndExportWorld() {
+            worldName = document.getElementById('world-name-input').value || "عالمي المبتكر 1.26";
+            worldSeed = document.getElementById('world-seed-input').value || "1260999123";
+
+            showToast("جاري تجهيز وبناء حزم التصدير العكسية...", "info");
+
+            const zipWorld = new JSZip();
+            const zipPack = new JSZip();
+
+            // Setup level.dat NBT
+            const nbt = new BedrockNBTWriter();
+            nbt.writeCompound("");
+            nbt.writeIntTag("StorageVersion", 9);
+            nbt.writeStringTag("LevelName", worldName);
+            nbt.writeLongTag("RandomSeed", parseInt(worldSeed));
+            
+            // Set spawn coordinates
+            nbt.writeIntTag("spawnX", 0);
+            nbt.writeIntTag("spawnY", 4);
+            nbt.writeIntTag("spawnZ", 0);
+            
+            nbt.writeIntTag("GameType", gameMode);
+            nbt.writeByteTag("commandsEnabled", 1);
+            nbt.writeByteTag("cheatsEnabled", 1);
+            nbt.writeByteTag("ForceGameType", 1);
+            nbt.writeIntTag("Difficulty", 1);
+            nbt.writeIntTag("Generator", worldGenerator);
+            nbt.writeEnd();
+
+            const nbtArr = nbt.getBinaryResult();
+
+            // Bedrock Level.dat headers
+            const finalLevelDat = new Uint8Array(8 + nbtArr.length);
+            finalLevelDat[0] = 0x08;
+            finalLevelDat[1] = 0x00;
+            finalLevelDat[2] = 0x00;
+            finalLevelDat[3] = 0x00;
+            
+            const len = nbtArr.length;
+            finalLevelDat[4] = len & 0xff;
+            finalLevelDat[5] = (len >> 8) & 0xff;
+            finalLevelDat[6] = (len >> 16) & 0xff;
+            finalLevelDat[7] = (len >> 24) & 0xff;
+            finalLevelDat.set(nbtArr, 8);
+
+            const bpPackUUID = "d4e2fa80-b26a-4b95-a222-7773dbf153a0";
+            const bpModuleUUID = "867a57a0-df6b-4e8c-b0fc-4c12ea84b061";
+
+            const activePacks = [{ "pack_id": bpPackUUID, "version": [1, 0, 0] }];
+            
+            const manifest = {
+                "format_version": 2,
+                "header": {
+                    "description": "Minecraft Automated Block Spawner Pack",
+                    "name": `${worldName} BP`,
+                    "uuid": bpPackUUID,
+                    "version": [1, 0, 0],
+                    "min_engine_version": [1, 20, 0]
+                },
+                "modules": [{
+                    "description": "Spawner Pack Command Module",
+                    "type": "data",
+                    "uuid": bpModuleUUID,
+                    "version": [1, 0, 0]
+                }]
+            };
+
+            const tickJson = { "values": ["auto_build"] };
+            
+            // Active listener command to trigger build functions
+            const autoBuildFunction = `execute as @a[tag=!built] at @s run function build\nexecute at @e[type=armor_stand,name=build] run function build\nkill @e[type=armor_stand,name=build]`;
+            
+            let buildFunction = `# Automated Minecraft Bedrock Block Spawner Map\n`;
+            buildFunction += `title @a actionbar §dجاري تشييد تصميمك الفني عبر المحلل العكسي...\n`;
+            buildFunction += `playsound random.levelup @a\n`;
+
+            // Convert voxel layouts to relative Minecraft console commands
+            Object.keys(voxelGrid).forEach(key => {
+                const [gx, gy, gz] = key.split(',').map(Number);
+                const blockType = voxelGrid[key];
+                const blockMCID = BLOCKS[blockType].id;
+
+                // Relative calculation to spawn location
+                const relX = gx - spawnX;
+                const relY = gy - spawnY;
+                const relZ = gz - spawnZ;
+
+                buildFunction += `setblock ~${relX} ~${relY} ~${relZ} ${blockMCID}\n`;
+            });
+
+            buildFunction += `tag @a add built\n`;
+            buildFunction += `title @a title "§dتم البناء بنجاح!"\n`;
+            buildFunction += `title @a subtitle "§aالتصميم المطور جاهز!"\n`;
+
+            // Pack behavior file ZIP structure
+            zipPack.file("manifest.json", JSON.stringify(manifest, null, 2));
+            let packFunctions = zipPack.folder("functions");
+            packFunctions.file("tick.json", JSON.stringify(tickJson, null, 2));
+            packFunctions.file("auto_build.mcfunction", autoBuildFunction);
+            packFunctions.file("build.mcfunction", buildFunction);
+
+            zipPack.generateAsync({ type: "blob" }).then(function (packContent) {
+                const packUrl = URL.createObjectURL(packContent);
+                const downloadPackBtn = document.getElementById('download-mcpack-btn');
+                downloadPackBtn.onclick = function() {
+                    const link = document.createElement('a');
+                    link.href = packUrl;
+                    link.download = `${worldName}_BP.mcpack`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast("تم تنزيل حزمة السلوك بنجاح! افتحها مباشرة في ماين كرافت.", "success");
+                };
+            });
+
+            // Pack full world MCWORLD structure
+            zipWorld.file("level.dat", finalLevelDat);
+            zipWorld.file("levelname.txt", worldName);
+            zipWorld.file("world_behavior_packs.json", JSON.stringify(activePacks, null, 2));
+            
+            let dbFolder = zipWorld.folder("db");
+            dbFolder.file("CURRENT", "MANIFEST-000001\n");
+            
+            let worldBP = zipWorld.folder("behavior_packs/builder_bp");
+            worldBP.file("manifest.json", JSON.stringify(manifest, null, 2));
+            let worldBPFuncs = worldBP.folder("functions");
+            worldBPFuncs.file("tick.json", JSON.stringify(tickJson, null, 2));
+            worldBPFuncs.file("auto_build.mcfunction", autoBuildFunction);
+            worldBPFuncs.file("build.mcfunction", buildFunction);
+
+            zipWorld.generateAsync({ type: "blob" }).then(function (worldContent) {
+                const worldUrl = URL.createObjectURL(worldContent);
+                const downloadWorldBtn = document.getElementById('download-mcworld-btn');
+                
+                downloadWorldBtn.onclick = function() {
+                    const link = document.createElement('a');
+                    link.href = worldUrl;
+                    link.download = `${worldName}.mcworld`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast("تم تنزيل الماب! تذكر استيرادها على تطبيق اللعبة.", "success");
+                };
+
+                document.getElementById('export-seed-text').innerText = worldSeed;
+                
+                toggleExportModal();
+                playCompleteSound();
+            });
+        }
+
+        function randomizeSeed() {
+            const newSeed = Math.floor(Math.random() * 2000000000);
+            document.getElementById('world-seed-input').value = newSeed;
+            playPopSound();
+            showToast("تم توليد بذرة (Seed) عشوائية جديدة!", "info");
+        }
+
+        function setGameMode(mode) {
+            gameMode = mode;
+            const creativeBtn = document.getElementById('gamemode-creative');
+            const survivalBtn = document.getElementById('gamemode-survival');
+            
+            if (mode === 1) {
+                creativeBtn.className = "py-1 px-2 bg-green-800 text-white rounded font-bold text-[10px]";
+                survivalBtn.className = "py-1 px-2 text-stone-400 rounded font-bold text-[10px]";
+            } else {
+                creativeBtn.className = "py-1 px-2 text-stone-400 rounded font-bold text-[10px]";
+                survivalBtn.className = "py-1 px-2 bg-green-800 text-white rounded font-bold text-[10px]";
+            }
+            playPopSound();
+        }
+
+        function setWorldGenerator(gen) {
+            worldGenerator = gen;
+            const flatBtn = document.getElementById('gen-flat');
+            const infiniteBtn = document.getElementById('gen-infinite');
+            
+            if (gen === 1) {
+                flatBtn.className = "py-1 px-2 bg-green-800 text-white rounded font-bold text-[10px]";
+                infiniteBtn.className = "py-1 px-2 text-stone-400 rounded font-bold text-[10px]";
+            } else {
+                flatBtn.className = "py-1 px-2 text-stone-400 rounded font-bold text-[10px]";
+                infiniteBtn.className = "py-1 px-2 bg-green-800 text-white rounded font-bold text-[10px]";
+            }
+            playPopSound();
+        }
+
+        function copyGeneratedSeed() {
+            const seed = document.getElementById('export-seed-text').innerText;
+            const tempInput = document.createElement('input');
+            tempInput.value = seed;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast("تم نسخ رقم الـ Seed!", "success");
+        }
+
+        // Toggles / Modal Managers
+        function toggleSettingsModal() { document.getElementById('settings-modal').classList.toggle('hidden'); }
+        function toggleExportModal() { document.getElementById('export-modal').classList.toggle('hidden'); }
+        function toggleClearConfirmModal() { document.getElementById('clear-confirm-modal').classList.toggle('hidden'); }
+        function openClearConfirmModal() { document.getElementById('clear-confirm-modal').classList.remove('hidden'); }
+        function toggleInventoryModal() { document.getElementById('inventory-modal').classList.toggle('hidden'); }
+        function toggleAnalyzerModal() { document.getElementById('analyzer-modal').classList.toggle('hidden'); }
+        
+        // Detailed Guide Toggle
+        function toggleGuideModal() { 
+            document.getElementById('detailed-guide-modal').classList.toggle('hidden'); 
+        }
+        
+        function openGuideFromExport() {
+            toggleExportModal();
+            toggleGuideModal();
+        }
+
+        function confirmClearMap() {
+            voxelGrid = {};
+            // Re-seed simple base platform
+            for (let x = -3; x <= 3; x++) {
+                for (let z = -3; z <= 3; z++) {
+                    voxelGrid[`${x},0,${z}`] = 'grass';
+                }
+            }
+            renderGrid();
+            toggleClearConfirmModal();
+            playBreakSound();
+            updateHUD();
+            showToast("تم إعادة تهيئة التصميم لمستوى البداية!", "info");
+        }
+
+        // Keyboard Shortcut mappings
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            
+            if (e.key >= '1' && e.key <= '9') {
+                selectHotbarIndex(parseInt(e.key) - 1);
+            }
+            if (e.key.toLowerCase() === 'e') {
+                toggleInventoryModal();
+            }
+            if (e.key === 'Enter') {
+                triggerActionOnCursor();
+            }
+        });
+
+        // Window load initializer
+
+        function resetHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        window.addEventListener('resize', resetHeight);
+        window.addEventListener('orientationchange', resetHeight);
+        resetHeight();
+
+        window.onload = function () {
+            renderHotbarSlots();
+
+            // Populate Full Inventory Selection
+            const gridContainer = document.getElementById('full-inventory-grid');
+            gridContainer.innerHTML = '';
+            Object.keys(BLOCKS).forEach(key => {
+                const block = BLOCKS[key];
+                gridContainer.innerHTML += `
+                    <button onclick="assignBlockToActiveSlot('${key}')" class="mc-panel p-2 flex flex-col items-center justify-between hover:bg-stone-800 transition-colors active:scale-95 duration-75">
+                        <div class="w-10 h-10 rounded mb-1.5" style="background-color: ${block.color}; border: 1.5px solid rgba(0,0,0,0.5);"></div>
+                        <span class="text-[10px] font-bold text-stone-200">${block.name}</span>
+                    </button>
+                `;
+            });
+
+            init3DEngine();
+        }
+    </script>
+</body>
+</html>
